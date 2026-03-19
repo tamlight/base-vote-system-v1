@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   useAccount, 
   useWriteContract, 
@@ -69,7 +69,7 @@ export default function Home() {
   const { isConnected } = useAccount();
   const [question, setQuestion] = useState('');
   
-  const { data: nextId } = useReadContract({
+  const { data: nextId, refetch } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: ABI,
     functionName: 'nextPollId',
@@ -77,7 +77,14 @@ export default function Home() {
   });
 
   const { writeContract, data: hash } = useWriteContract();
-  const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  useEffect(() => {
+    if (isSuccess) {
+      refetch();
+      setQuestion('');
+    }
+  }, [isSuccess, refetch]);
 
   const handleCreate = async () => {
     if (!question) return;
@@ -182,7 +189,7 @@ function StatRow({ label, value }) {
 
 function PollCard({ id, contractAddress, isConnected }) {
   const [bet, setBet] = useState('');
-  const { data: poll } = useReadContract({
+  const { data: poll, refetch } = useReadContract({
     address: contractAddress,
     abi: ABI,
     functionName: 'getPollInfo',
@@ -190,9 +197,15 @@ function PollCard({ id, contractAddress, isConnected }) {
     query: { enabled: isConnected }
   });
 
-  const { writeContract } = useWriteContract();
-  const { data: hash } = useWriteContract();
-  const { isLoading: isProcessing } = useWaitForTransactionReceipt({ hash });
+  const { writeContract, data: hash } = useWriteContract();
+  const { isLoading: isProcessing, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  useEffect(() => {
+    if (isSuccess) {
+      refetch();
+      setBet('');
+    }
+  }, [isSuccess, refetch]);
 
   if (!poll) return null;
 
